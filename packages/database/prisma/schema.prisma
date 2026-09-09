@@ -1,0 +1,100 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Institution {
+  id          String   @id @default(uuid())
+  name        String
+  domain      String?  @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users       User[]
+}
+
+model User {
+  id             String       @id @default(uuid())
+  email          String       @unique
+  passwordHash   String
+  
+  // Enums are not natively supported in SQLite Prisma, using String defaults to simulate enums:
+  // Role Enum: USER | ADMIN | VERIFIER 
+  role           String       @default("USER")
+  
+  institutionId  String?
+  institution    Institution? @relation(fields: [institutionId], references: [id])
+  
+  digitalTwin    DigitalTwinState?
+  actions        CarbonAction[]
+  
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model DigitalTwinState {
+  id               String   @id @default(uuid())
+  userId           String   @unique
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  currentEmissions Float    @default(0.0)
+  energyUsage      Float    @default(0.0)
+  lastSyncAt       DateTime @default(now())
+
+  scores           CarbonScore[]
+  recommendations  Recommendation[]
+}
+
+model CarbonAction {
+  id                String   @id @default(uuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // ActionType Enum: EV_CHARGING | SOLAR_INSTALLATION | ENERGY_SAVING | TREES_PLANTED | OTHER
+  type              String   
+  description       String
+  emissionReduction Float?   
+  
+  verification      Verification?
+  timestamp         DateTime @default(now())
+}
+
+model Verification {
+  id              String       @id @default(uuid())
+  carbonActionId  String       @unique
+  carbonAction    CarbonAction @relation(fields: [carbonActionId], references: [id], onDelete: Cascade)
+  
+  // VerificationStatus Enum: PENDING | APPROVED | REJECTED
+  status          String       @default("PENDING") 
+  trustScore      Float?       
+  mediaHash       String?      
+  previousHash    String?      
+  
+  verifiedAt      DateTime?
+}
+
+model CarbonScore {
+  id               String           @id @default(uuid())
+  digitalTwinId    String
+  digitalTwin      DigitalTwinState @relation(fields: [digitalTwinId], references: [id], onDelete: Cascade)
+  
+  score            Float            
+  recordedAt       DateTime         @default(now())
+}
+
+model Recommendation {
+  id               String           @id @default(uuid())
+  digitalTwinId    String
+  digitalTwin      DigitalTwinState @relation(fields: [digitalTwinId], references: [id], onDelete: Cascade)
+  
+  title            String
+  description      String
+  potentialImpact  Float            
+  isApplied        Boolean          @default(false)
+  
+  createdAt        DateTime         @default(now())
+}
