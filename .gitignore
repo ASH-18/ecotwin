@@ -1,0 +1,21 @@
+# dependencies
+node_modules/
+__pycache__/
+*.pyc
+*.db
+*.tsbuildinfo
+venv/
+env/
+
+# Next.js
+.next/
+out/
+build/
+
+# NestJS
+dist/
+
+# misc
+.env
+.DS_Store
+.env.local
